@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: marketplace-postgres
+    environment:
+      POSTGRES_DB: marketplace
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  flyway:
+    image: flyway/flyway:latest
+    container_name: flyway
+    command: [
+      "-url=jdbc:postgresql://postgres:5432/marketplace",
+      "-user=user",
+      "-password=password",
+      "migrate"
+    ]
+    volumes:
+      - ./migrations:/flyway/sql
+    depends_on:
+      - postgres
+
+  marketplace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: /app/main
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      DB_URL: postgres://user:pass@postgres:5432/marketplace?sslmode=disable
+    volumes:
+      - ./storage:/app/storage
+    links:
+      - postgres
+
+volumes:
+  postgres-data:
