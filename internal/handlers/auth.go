@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/artnikel/marketplace/internal/service"
 )
@@ -26,13 +27,25 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.AuthService.Register(r.Context(), req.Login, req.Password)
+	req.Login = strings.TrimSpace(req.Login)
+	req.Password = strings.TrimSpace(req.Password)
+
+	if req.Login == "" || req.Password == "" {
+		http.Error(w, `{"error":"login and password are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	user, token, err := h.AuthService.Register(r.Context(), req.Login, req.Password)
 	if err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"user":  user,
+		"token": token,
+	})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -46,11 +59,23 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.AuthService.Login(r.Context(), req.Login, req.Password)
+	req.Login = strings.TrimSpace(req.Login)
+	req.Password = strings.TrimSpace(req.Password)
+
+	if req.Login == "" || req.Password == "" {
+		http.Error(w, `{"error":"login and password are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	user, token, err := h.AuthService.Login(r.Context(), req.Login, req.Password)
 	if err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusUnauthorized)
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"user":  user,
+		"token": token,
+	})
 }

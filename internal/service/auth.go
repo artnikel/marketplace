@@ -3,10 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"regexp"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/artnikel/marketplace/internal/models"
 	"github.com/artnikel/marketplace/internal/repository"
 	mjwt "github.com/artnikel/marketplace/pkg/jwt"
 	"github.com/golang-jwt/jwt/v5"
@@ -28,40 +31,64 @@ func NewAuthService(repo *repository.UserRepo) *AuthService {
 	return &AuthService{UserRepo: repo}
 }
 
-func (s *AuthService) Register(ctx context.Context, login, password string) (string, error) {
-	if len(login) < 3 || len(password) < 6 {
-		return "", errors.New("login must be at least 3 characters and password at least 6")
+func (s *AuthService) Register(ctx context.Context, login, password string) (*models.User, string, error) {
+	if err := s.validateLogin(login); err != nil {
+		return nil, "", err
 	}
 
-	existing, _ := s.UserRepo.GetByLogin(ctx, login)
+	if err := s.validatePassword(password); err != nil {
+		return nil, "", err
+	}
+
+	existing, err := s.UserRepo.GetByLogin(ctx, login)
+	if err != nil {
+		return nil, "", errors.New("database error")
+	}
 	if existing != nil {
-		return "", errors.New("user already exists")
+		return nil, "", errors.New("user already exists")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return nil, "", errors.New("password hashing failed")
 	}
 
 	user, err := s.UserRepo.Create(ctx, login, string(hash))
 	if err != nil {
-		return "", err
+		return nil, "", errors.New("failed to create user")
 	}
 
-	return mjwt.GenerateJWT(user.ID, user.Login)
+	token, err := mjwt.GenerateJWT(user.ID, user.Login)
+	if err != nil {
+		return nil, "", errors.New("failed to generate token")
+	}
+
+	return &models.User{ID: user.ID, Login: user.Login}, token, nil
 }
 
-func (s *AuthService) Login(ctx context.Context, login, password string) (string, error) {
+func (s *AuthService) Login(ctx context.Context, login, password string) (*models.User, string, error) {
+	if strings.TrimSpace(login) == "" || strings.TrimSpace(password) == "" {
+		return nil, "", errors.New("login and password are required")
+	}
+
 	user, err := s.UserRepo.GetByLogin(ctx, login)
-	if err != nil || user == nil {
-		return "", errors.New("invalid login or password")
+	if err != nil {
+		return nil, "", errors.New("database error")
+	}
+	if user == nil {
+		return nil, "", errors.New("invalid login or password")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Hash), []byte(password)); err != nil {
-		return "", errors.New("invalid login or password")
+		return nil, "", errors.New("invalid login or password")
 	}
 
-	return mjwt.GenerateJWT(user.ID, user.Login)
+	token, err := mjwt.GenerateJWT(user.ID, user.Login)
+	if err != nil {
+		return nil, "", errors.New("failed to generate token")
+	}
+
+	return &models.User{ID: user.ID, Login: user.Login}, token, nil
 }
 
 func (s *AuthService) GenerateToken(userID int, login string) (string, error) {
@@ -95,4 +122,35 @@ func (s *AuthService) ParseToken(tokenStr string) (*Claims, error) {
 	}
 
 	return claims, nil
+}
+
+func (s *AuthService) validateLogin(login string) error {
+	login = strings.TrimSpace(login)
+	
+	if len(login) < 3 {
+		return errors.New("login must be at least 3 characters")
+	}
+	
+	if len(login) > 50 {
+		return errors.New("login too long (max 50 characters)")
+	}
+	
+	validLogin := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	if !validLogin.MatchString(login) {
+		return errors.New("login can contain only letters, numbers, underscores and hyphens")
+	}
+	
+	return nil
+}
+
+func (s *AuthService) validatePassword(password string) error {
+	if len(password) < 6 {
+		return errors.New("password must be at least 6 characters")
+	}
+	
+	if len(password) > 100 {
+		return errors.New("password too long (max 100 characters)")
+	}
+	
+	return nil
 }

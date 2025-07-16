@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/artnikel/marketplace/internal/service"
@@ -38,8 +39,8 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func AuthMiddleware(authService *service.AuthService) func(http.HandlerFunc) http.HandlerFunc {
-	return func(next http.HandlerFunc) http.HandlerFunc {
+func AuthMiddleware(authService *service.AuthService) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
@@ -48,16 +49,24 @@ func AuthMiddleware(authService *service.AuthService) func(http.HandlerFunc) htt
 			}
 
 			token := strings.TrimPrefix(authHeader, "Bearer ")
+			if token == authHeader {
+				http.Error(w, `{"error":"invalid authorization header format"}`, http.StatusUnauthorized)
+				return
+			}
+
 			claims, err := authService.ParseToken(token)
 			if err != nil {
-				http.Error(w, `{"error":"invalid token"}`, http.StatusUnauthorized)
+				http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
 				return
 			}
 
 			ctx := context.WithValue(r.Context(), userIDKey, claims.UserID)
 			ctx = context.WithValue(ctx, userLoginKey, claims.Login)
 
-			next(w, r.WithContext(ctx))
+			r.Header.Set("User-ID", strconv.Itoa(claims.UserID))
+			r.Header.Set("User-Login", claims.Login)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

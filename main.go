@@ -17,35 +17,43 @@ import (
 
 func main() {
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, "postgres://user:password@marketplace:5432/marketplacedb?sslmode=disable")
+	pool, err := pgxpool.New(ctx, "postgres://user:password@postgres:5432/marketplacedb?sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer pool.Close()
 
+	if err := pool.Ping(ctx); err != nil {
+		log.Fatal("Failed to ping database:", err)
+	}
+	log.Println("Database connection established")
+
 	userRepo := repository.NewUserRepo(pool)
-	adRepo := repository.NewItemRepo(pool)
+	itemRepo := repository.NewItemRepo(pool)
 
 	authSvc := service.NewAuthService(userRepo)
-	adsSvc := service.NewItemsService(adRepo, userRepo)
+	itemsSvc := service.NewItemsService(itemRepo, userRepo)
 
 	authH := handlers.NewAuthHandler(authSvc)
-	adsH := handlers.NewAdsHandler(adsSvc)
+	itemsH := handlers.NewItemsHandler(itemsSvc)
 
 	r := mux.NewRouter()
 	r.Use(middleware.CORSMiddleware)
+	r.Use(middleware.LoggingMiddleware)
 
 	r.HandleFunc("/auth/register", authH.Register).Methods("POST")
 	r.HandleFunc("/auth/login", authH.Login).Methods("POST")
+	r.HandleFunc("/items", itemsH.GetItems).Methods("GET")
 
-	r.HandleFunc("/items", middleware.AuthMiddleware(authSvc)(adsH.CreateAd)).Methods("POST")
-	r.HandleFunc("/items", adsH.GetAds).Methods("GET")
+	protected := r.PathPrefix("/").Subrouter()
+	protected.Use(middleware.AuthMiddleware(authSvc))
+	protected.HandleFunc("/items", itemsH.CreateItem).Methods("POST")
 
 	srv := &http.Server{
 		Handler:      r,
 		Addr:         ":8080",
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
 	}
 
 	log.Println("Server running at :8080")
