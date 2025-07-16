@@ -17,7 +17,7 @@ import (
 
 func main() {
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, "postgres://user:pass@localhost:5432/adsdb?sslmode=disable")
+	pool, err := pgxpool.New(ctx, "postgres://user:password@marketplace:5432/marketplacedb?sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
