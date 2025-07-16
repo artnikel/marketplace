@@ -33,6 +33,8 @@ services:
       DATABASE_URL: postgres://user:password@postgres:5432/marketplacedb?sslmode=disable
     ports:
       - "8080:8080"
+    volumes:
+      - ./web:/app/web
 
 volumes:
   postgres-data:

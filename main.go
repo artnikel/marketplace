@@ -41,13 +41,16 @@ func main() {
 	r.Use(middleware.CORSMiddleware)
 	r.Use(middleware.LoggingMiddleware)
 
+	// Public routes
 	r.HandleFunc("/auth/register", authH.Register).Methods("POST")
 	r.HandleFunc("/auth/login", authH.Login).Methods("POST")
 	r.HandleFunc("/items", itemsH.GetItems).Methods("GET")
 
-	protected := r.PathPrefix("/").Subrouter()
-	protected.Use(middleware.AuthMiddleware(authSvc))
-	protected.HandleFunc("/items", itemsH.CreateItem).Methods("POST")
+	// Protected POST route
+	r.Handle("/items", middleware.AuthMiddleware(authSvc)(http.HandlerFunc(itemsH.CreateItem))).Methods("POST")
+
+	// Serve frontend
+	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("web"))))
 
 	srv := &http.Server{
 		Handler:      r,
