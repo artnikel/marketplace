@@ -6,7 +6,6 @@ import (
 	"errors"
 	"regexp"
 	"strings"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -15,20 +14,12 @@ import (
 	"github.com/artnikel/marketplace/internal/models"
 	"github.com/artnikel/marketplace/internal/repository"
 	mjwt "github.com/artnikel/marketplace/pkg/jwt"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 // AuthService provides authentication and user management functionality
 type AuthService struct {
 	UserRepo *repository.UserRepo
 	cfg      *config.Config
-}
-
-// Claims represents custom JWT claims used in the auth service
-type Claims struct {
-	UserID int    `json:"user_id"`
-	Login  string `json:"login"`
-	jwt.RegisteredClaims
 }
 
 // NewAuthService creates a new instance of AuthService
@@ -98,39 +89,9 @@ func (s *AuthService) Login(ctx context.Context, login, password string) (*model
 	return &models.User{ID: user.ID, Login: user.Login}, token, nil
 }
 
-// GenerateToken generates a JWT token for the given user
-func (s *AuthService) GenerateToken(userID int, login string) (string, error) {
-	claims := Claims{
-		UserID: userID,
-		Login:  login,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(constants.OneDayTimeout)),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.cfg.JWT.Secret))
-}
-
 // ParseToken parses and validates a JWT token
-func (s *AuthService) ParseToken(tokenStr string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
-		return []byte(s.cfg.JWT.Secret), nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	claims, ok := token.Claims.(*Claims)
-	if !ok || !token.Valid {
-		return nil, errors.New("invalid token")
-	}
-
-	return claims, nil
+func (s *AuthService) ParseToken(tokenStr string) (*mjwt.Claims, error) {
+	return mjwt.ParseToken(tokenStr, s.cfg.JWT.Secret)
 }
 
 // validateLogin checks if the login meets required rules

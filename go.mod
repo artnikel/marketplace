@@ -4,7 +4,6 @@ go 1.24.2
 
 require (
 	github.com/artnikel/taskscheduler v0.0.0-20250527155849-a1a2ad268b21
-	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/gorilla/mux v1.8.1
 	github.com/jackc/pgx/v5 v5.7.5
 	golang.org/x/crypto v0.40.0
