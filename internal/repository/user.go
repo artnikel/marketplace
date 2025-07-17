@@ -1,3 +1,4 @@
+// Package repository provides data access to the database
 package repository
 
 import (
@@ -9,14 +10,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// UserRepo handles database operations related to users
 type UserRepo struct {
 	DB *pgxpool.Pool
 }
 
+// NewUserRepo creates a new instance of UserRepo
 func NewUserRepo(db *pgxpool.Pool) *UserRepo {
 	return &UserRepo{DB: db}
 }
 
+// Create inserts a new user into the database
 func (r *UserRepo) Create(ctx context.Context, login, hash string) (*models.User, error) {
 	query := `
 		INSERT INTO users (login, password_hash)
@@ -37,6 +41,7 @@ func (r *UserRepo) Create(ctx context.Context, login, hash string) (*models.User
 	}, nil
 }
 
+// GetByLogin retrieves a user by their login
 func (r *UserRepo) GetByLogin(ctx context.Context, login string) (*models.User, error) {
 	query := `
 		SELECT id, login, password_hash

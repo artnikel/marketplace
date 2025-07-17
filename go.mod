@@ -1,12 +1,19 @@
 module github.com/artnikel/marketplace
 
-go 1.23.10
+go 1.24.2
 
 require (
+	github.com/artnikel/taskscheduler v0.0.0-20250527155849-a1a2ad268b21
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/gorilla/mux v1.8.1
 	github.com/jackc/pgx/v5 v5.7.5
 	golang.org/x/crypto v0.40.0
+	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	github.com/kr/text v0.2.0 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 )
 
 require (

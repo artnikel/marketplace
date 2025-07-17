@@ -1,3 +1,4 @@
+// Package service contains business logic for handling items
 package service
 
 import (
@@ -9,15 +10,18 @@ import (
 	"github.com/artnikel/marketplace/internal/repository"
 )
 
+// ItemsService provides methods for managing items
 type ItemsService struct {
 	ItemRepo *repository.ItemRepo
 	UserRepo *repository.UserRepo
 }
 
+// NewItemsService creates a new instance of ItemsService
 func NewItemsService(itemRepo *repository.ItemRepo, userRepo *repository.UserRepo) *ItemsService {
 	return &ItemsService{ItemRepo: itemRepo, UserRepo: userRepo}
 }
 
+// CreateItem validates and creates a new item
 func (s *ItemsService) CreateItem(ctx context.Context, input *models.Item) (*models.Item, error) {
 	if input.Title == "" || input.Description == "" || input.Price <= 0 {
 		return nil, errors.New("title, description and positive price are required")
@@ -28,6 +32,7 @@ func (s *ItemsService) CreateItem(ctx context.Context, input *models.Item) (*mod
 	return input, nil
 }
 
+// ListItems returns a paginated list of items based on filters
 func (s *ItemsService) ListItems(ctx context.Context, page, limit int, filters *models.ItemFilters) ([]*models.Item, error) {
 	if page < 1 {
 		page = 1

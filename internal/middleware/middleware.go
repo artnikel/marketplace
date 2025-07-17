@@ -1,3 +1,4 @@
+// Package middleware provides HTTP middleware functions for logging, CORS, and authentication
 package middleware
 
 import (
@@ -10,13 +11,16 @@ import (
 	"github.com/artnikel/marketplace/internal/service"
 )
 
+// contextKey is a custom type used for storing values in context
 type contextKey string
 
+// Keys used to store user information in context
 const (
 	userIDKey    contextKey = "userID"
 	userLoginKey contextKey = "userLogin"
 )
 
+// CORSMiddleware adds CORS headers to the response
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -32,6 +36,7 @@ func CORSMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// LoggingMiddleware logs each incoming HTTP request
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %s", r.RemoteAddr, r.Method, r.URL.Path)
@@ -39,6 +44,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// AuthMiddleware validates JWT token and injects user info into the request context
 func AuthMiddleware(authService *service.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +77,7 @@ func AuthMiddleware(authService *service.AuthService) func(http.Handler) http.Ha
 	}
 }
 
+// GetUserID extracts the user ID from the request context
 func GetUserID(r *http.Request) int {
 	if id, ok := r.Context().Value(userIDKey).(int); ok {
 		return id
@@ -78,6 +85,7 @@ func GetUserID(r *http.Request) int {
 	return 0
 }
 
+// GetUserLogin extracts the user login from the request context
 func GetUserLogin(r *http.Request) string {
 	if login, ok := r.Context().Value(userLoginKey).(string); ok {
 		return login

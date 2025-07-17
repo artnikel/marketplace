@@ -1,41 +1,55 @@
+// Package main is an entry point to application
 package main
 
 import (
 	"context"
 	"log"
 	"net/http"
-	"time"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/artnikel/marketplace/internal/config"
+	"github.com/artnikel/marketplace/internal/constants"
 	"github.com/artnikel/marketplace/internal/handlers"
+	"github.com/artnikel/marketplace/internal/logging"
 	"github.com/artnikel/marketplace/internal/middleware"
 	"github.com/artnikel/marketplace/internal/repository"
 	"github.com/artnikel/marketplace/internal/service"
 )
 
 func main() {
+	cfg, err := config.LoadConfig("config.yaml")
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+
+	logger, err := logging.NewLogger(cfg.Logging.Path)
+	if err != nil {
+		log.Fatalf("failed to init logger: %v", err)
+	}
+
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, "postgres://user:password@postgres:5432/marketplacedb?sslmode=disable")
+	pool, err := pgxpool.New(ctx, cfg.Database.Connection)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer pool.Close()
-
+	//nolint:gocritic
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatal("Failed to ping database:", err)
+		log.Fatal("failed to ping database:", err)
 	}
-	log.Println("Database connection established")
+	log.Println("database connection established")
 
 	userRepo := repository.NewUserRepo(pool)
 	itemRepo := repository.NewItemRepo(pool)
 
-	authSvc := service.NewAuthService(userRepo)
+	authSvc := service.NewAuthService(userRepo, cfg)
 	itemsSvc := service.NewItemsService(itemRepo, userRepo)
 
-	authH := handlers.NewAuthHandler(authSvc)
-	itemsH := handlers.NewItemsHandler(itemsSvc)
+	authH := handlers.NewAuthHandler(authSvc, logger)
+	itemsH := handlers.NewItemsHandler(itemsSvc, logger)
 
 	r := mux.NewRouter()
 	r.Use(middleware.CORSMiddleware)
@@ -54,11 +68,11 @@ func main() {
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         ":8080",
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		Addr:         ":" + strconv.Itoa(cfg.Server.Port),
+		ReadTimeout:  constants.ServerTimeout,
+		WriteTimeout: constants.ServerTimeout,
 	}
 
-	log.Println("Server running at :8080")
+	log.Println("Server running at :" + strconv.Itoa(cfg.Server.Port))
 	log.Fatal(srv.ListenAndServe())
 }

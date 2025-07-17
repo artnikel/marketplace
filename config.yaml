@@ -1,0 +1,12 @@
+server: 
+  port: 8080
+
+logging:
+  path: logs
+
+database:
+  connection: postgres://user:password@postgres:5432/marketplacedb?sslmode=disable
+
+jwt:
+  secret: secret-key
+

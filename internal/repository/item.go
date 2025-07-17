@@ -1,3 +1,4 @@
+// Package repository provides access to the items table in the database
 package repository
 
 import (
@@ -10,29 +11,33 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// ItemRepo handles database operations related to items
 type ItemRepo struct {
-  DB *pgxpool.Pool
+	DB *pgxpool.Pool
 }
 
+// NewItemRepo creates a new instance of ItemRepo
 func NewItemRepo(db *pgxpool.Pool) *ItemRepo {
-  return &ItemRepo{DB: db}
+	return &ItemRepo{DB: db}
 }
 
+// Create inserts a new item into the database
 func (r *ItemRepo) Create(ctx context.Context, item *models.Item) error {
-  q := `
+	q := `
     INSERT INTO items (title, description, image_url, price, author_id, author_login, created_at)
     VALUES ($1,$2,$3,$4,$5,$6,$7)
     RETURNING id, created_at
   `
-  return r.DB.QueryRow(ctx, q,
-    item.Title, item.Description, item.ImageURL, item.Price,
-    item.AuthorID, item.AuthorLogin, time.Now(),
-  ).Scan(&item.ID, &item.CreatedAt)
+	return r.DB.QueryRow(ctx, q,
+		item.Title, item.Description, item.ImageURL, item.Price,
+		item.AuthorID, item.AuthorLogin, time.Now(),
+	).Scan(&item.ID, &item.CreatedAt)
 }
 
+// List retrieves a list of items from the database with filters and pagination
 func (r *ItemRepo) List(ctx context.Context, offset, limit int, filters *models.ItemFilters) ([]*models.Item, error) {
 	args := []interface{}{limit, offset}
-	argIndex := 3 // Начинаем с 3, так как limit=$1, offset=$2
+	argIndex := 3
 
 	q := `
 		SELECT id, title, description, image_url, price, author_id, author_login, created_at
@@ -62,7 +67,6 @@ func (r *ItemRepo) List(ctx context.Context, offset, limit int, filters *models.
 	if filters.Description != "" {
 		conditions = append(conditions, "description ILIKE "+pgxPlaceholder(argIndex))
 		args = append(args, "%"+filters.Description+"%")
-		argIndex++
 	}
 
 	if len(conditions) > 0 {
@@ -92,6 +96,7 @@ func (r *ItemRepo) List(ctx context.Context, offset, limit int, filters *models.
 	return items, nil
 }
 
+// pgxPlaceholder returns a PostgreSQL-style placeholder for prepared statements
 func pgxPlaceholder(n int) string {
-  return "$" + strconv.Itoa(n)
+	return "$" + strconv.Itoa(n)
 }
