@@ -59,24 +59,46 @@ func main() {
 	r.Use(middleware.CORSMiddleware)
 	r.Use(middleware.LoggingMiddleware)
 
-	// Public routes
-	r.HandleFunc("/auth/register", authH.Register).Methods("POST")
-	r.HandleFunc("/auth/login", authH.Login).Methods("POST")
-	r.HandleFunc("/items", itemsH.GetItems).Methods("GET")
+	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok"}`))
+	}).Methods("GET")
 
-	// Protected POST route
-	r.Handle("/items", middleware.AuthMiddleware(authSvc)(http.HandlerFunc(itemsH.CreateItem))).Methods("POST")
+	// API routes
+	api := r.PathPrefix("/api").Subrouter()
+	
+	// Public routes
+	api.HandleFunc("/auth/register", authH.Register).Methods("POST", "OPTIONS")
+	api.HandleFunc("/auth/login", authH.Login).Methods("POST", "OPTIONS")
+	api.HandleFunc("/items", itemsH.GetItems).Methods("GET", "OPTIONS")
+
+	// Protected routes
+	api.Handle("/items", middleware.AuthMiddleware(authSvc)(http.HandlerFunc(itemsH.CreateItem))).Methods("POST", "OPTIONS")
+
+	// Fallback for old API paths (без /api prefix)
+	r.HandleFunc("/auth/register", authH.Register).Methods("POST", "OPTIONS")
+	r.HandleFunc("/auth/login", authH.Login).Methods("POST", "OPTIONS")
+	r.HandleFunc("/items", itemsH.GetItems).Methods("GET", "OPTIONS")
+	r.Handle("/items", middleware.AuthMiddleware(authSvc)(http.HandlerFunc(itemsH.CreateItem))).Methods("POST", "OPTIONS")
 
 	// Serve frontend
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("web"))))
 
+	port := cfg.Server.Port
+	if envPort := os.Getenv("PORT"); envPort != "" {
+		if p, err := strconv.Atoi(envPort); err == nil {
+			port = p
+		}
+	}
+
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         ":" + strconv.Itoa(cfg.Server.Port),
+		Addr:         "0.0.0.0:" + strconv.Itoa(port), 
 		ReadTimeout:  constants.ServerTimeout,
 		WriteTimeout: constants.ServerTimeout,
 	}
 
-	log.Println("Server running at :" + strconv.Itoa(cfg.Server.Port))
+	log.Printf("Server running on 0.0.0.0:%d", port)
 	log.Fatal(srv.ListenAndServe())
 }

@@ -387,7 +387,11 @@
     </div>
 
     <script>
+        function debugLog(message, data = null) {
+            console.log(`[DEBUG] ${message}`, data);
+        }
         const API_BASE = window.location.origin;
+        debugLog('API_BASE set to:', API_BASE);
         let currentUser = null;
         let currentPage = 1;
         let currentFilters = {};
@@ -398,6 +402,7 @@
             loadItems();
             setupEventListeners();
         });
+
 
         function setupEventListeners() {
             // Login form
@@ -501,6 +506,8 @@
             const password = document.getElementById('login-password').value;
             const errorEl = document.getElementById('login-error');
 
+            debugLog('Attempting login', { username, url: `${API_BASE}/auth/login` });
+
             try {
                 const response = await fetch(`${API_BASE}/auth/login`, {
                     method: 'POST',
@@ -510,7 +517,10 @@
                     body: JSON.stringify({ login: username, password }),
                 });
 
+                debugLog('Login response status:', response.status);
+                
                 const data = await response.json();
+                debugLog('Login response data:', data);
 
                 if (response.ok) {
                     localStorage.setItem('token', data.token);
@@ -524,6 +534,7 @@
                     errorEl.classList.remove('hidden');
                 }
             } catch (error) {
+                debugLog('Login error:', error);
                 errorEl.textContent = 'Network error. Please try again.';
                 errorEl.classList.remove('hidden');
             }
@@ -534,6 +545,8 @@
             const password = document.getElementById('register-password').value;
             const errorEl = document.getElementById('register-error');
 
+            debugLog('Attempting registration', { username, url: `${API_BASE}/auth/register` });
+
             try {
                 const response = await fetch(`${API_BASE}/auth/register`, {
                     method: 'POST',
@@ -543,7 +556,10 @@
                     body: JSON.stringify({ login: username, password }),
                 });
 
+                debugLog('Registration response status:', response.status);
+                
                 const data = await response.json();
+                debugLog('Registration response data:', data);
 
                 if (response.ok) {
                     localStorage.setItem('token', data.token);
@@ -557,6 +573,7 @@
                     errorEl.classList.remove('hidden');
                 }
             } catch (error) {
+                debugLog('Registration error:', error);
                 errorEl.textContent = 'Network error. Please try again.';
                 errorEl.classList.remove('hidden');
             }
