@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -23,6 +24,9 @@ func main() {
 	cfg, err := config.LoadConfig("config.yaml")
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
+	}
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		cfg.Database.Connection = dbURL
 	}
 
 	logger, err := logging.NewLogger(cfg.Logging.Path)
