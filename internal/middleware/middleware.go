@@ -16,8 +16,8 @@ type contextKey string
 
 // Keys used to store user information in context
 const (
-	userIDKey    contextKey = "userID"
-	userLoginKey contextKey = "userLogin"
+	UserIDKey    contextKey = "userID"
+	UserLoginKey contextKey = "userLogin"
 )
 
 // CORSMiddleware adds CORS headers to the response
@@ -45,7 +45,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 }
 
 // AuthMiddleware validates JWT token and injects user info into the request context
-func AuthMiddleware(authService *service.AuthService) func(http.Handler) http.Handler {
+func AuthMiddleware(authService service.AuthServiceInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
@@ -66,8 +66,8 @@ func AuthMiddleware(authService *service.AuthService) func(http.Handler) http.Ha
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), userIDKey, claims.UserID)
-			ctx = context.WithValue(ctx, userLoginKey, claims.Login)
+			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
+			ctx = context.WithValue(ctx, UserLoginKey, claims.Login)
 
 			r.Header.Set("User-ID", strconv.Itoa(claims.UserID))
 			r.Header.Set("User-Login", claims.Login)
@@ -79,7 +79,7 @@ func AuthMiddleware(authService *service.AuthService) func(http.Handler) http.Ha
 
 // GetUserID extracts the user ID from the request context
 func GetUserID(r *http.Request) int {
-	if id, ok := r.Context().Value(userIDKey).(int); ok {
+	if id, ok := r.Context().Value(UserIDKey).(int); ok {
 		return id
 	}
 	return 0
@@ -87,7 +87,7 @@ func GetUserID(r *http.Request) int {
 
 // GetUserLogin extracts the user login from the request context
 func GetUserLogin(r *http.Request) string {
-	if login, ok := r.Context().Value(userLoginKey).(string); ok {
+	if login, ok := r.Context().Value(UserLoginKey).(string); ok {
 		return login
 	}
 	return ""

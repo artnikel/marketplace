@@ -7,17 +7,22 @@ import (
 	"strings"
 
 	"github.com/artnikel/marketplace/internal/models"
-	"github.com/artnikel/marketplace/internal/repository"
 )
+
+// ItemRepository is an interface that contains item repository methods
+type ItemRepository interface {
+	Create(ctx context.Context, item *models.Item) error
+	List(ctx context.Context, offset, limit int, filters *models.ItemFilters) ([]*models.Item, error)
+}
 
 // ItemsService provides methods for managing items
 type ItemsService struct {
-	ItemRepo *repository.ItemRepo
-	UserRepo *repository.UserRepo
+	ItemRepo ItemRepository
+	UserRepo UserRepository
 }
 
 // NewItemsService creates a new instance of ItemsService
-func NewItemsService(itemRepo *repository.ItemRepo, userRepo *repository.UserRepo) *ItemsService {
+func NewItemsService(itemRepo ItemRepository, userRepo UserRepository) *ItemsService {
 	return &ItemsService{ItemRepo: itemRepo, UserRepo: userRepo}
 }
 

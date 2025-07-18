@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -10,17 +11,22 @@ import (
 	"github.com/artnikel/marketplace/internal/logging"
 	"github.com/artnikel/marketplace/internal/middleware"
 	"github.com/artnikel/marketplace/internal/models"
-	"github.com/artnikel/marketplace/internal/service"
 )
+
+// ItemsService is an interface that contains items service methods
+type ItemsService interface {
+	CreateItem(ctx context.Context, input *models.Item) (*models.Item, error)
+	ListItems(ctx context.Context, page, limit int, filters *models.ItemFilters) ([]*models.Item, error)
+}
 
 // ItemsHandler handles item-related HTTP requests
 type ItemsHandler struct {
-	Svc    *service.ItemsService
+	Svc    ItemsService
 	logger *logging.Logger
 }
 
 // NewItemsHandler creates a new ItemsHandler instance
-func NewItemsHandler(svc *service.ItemsService, logger *logging.Logger) *ItemsHandler {
+func NewItemsHandler(svc ItemsService, logger *logging.Logger) *ItemsHandler {
 	return &ItemsHandler{Svc: svc, logger: logger}
 }
 

@@ -12,18 +12,28 @@ import (
 	"github.com/artnikel/marketplace/internal/config"
 	"github.com/artnikel/marketplace/internal/constants"
 	"github.com/artnikel/marketplace/internal/models"
-	"github.com/artnikel/marketplace/internal/repository"
 	mjwt "github.com/artnikel/marketplace/pkg/jwt"
 )
 
+// AuthServiceInterface is an interface that contains method for middleware
+type AuthServiceInterface interface {
+	ParseToken(token string) (*mjwt.Claims, error)
+}
+
+// UserRepository is an interface that contains user repository methods
+type UserRepository interface {
+	Create(ctx context.Context, login, hash string) (*models.User, error)
+	GetByLogin(ctx context.Context, login string) (*models.User, error)
+}
+
 // AuthService provides authentication and user management functionality
 type AuthService struct {
-	UserRepo *repository.UserRepo
+	UserRepo UserRepository
 	cfg      *config.Config
 }
 
 // NewAuthService creates a new instance of AuthService
-func NewAuthService(repo *repository.UserRepo, cfg *config.Config) *AuthService {
+func NewAuthService(repo UserRepository, cfg *config.Config) *AuthService {
 	return &AuthService{UserRepo: repo, cfg: cfg}
 }
 

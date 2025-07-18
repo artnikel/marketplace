@@ -1,22 +1,29 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/artnikel/marketplace/internal/logging"
-	"github.com/artnikel/marketplace/internal/service"
+	"github.com/artnikel/marketplace/internal/models"
 )
+
+// AuthService is an interface that contains auth service methods
+type AuthService interface {
+	Register(ctx context.Context, login, password string) (*models.User, string, error)
+	Login(ctx context.Context, login, password string) (*models.User, string, error)
+}
 
 // AuthHandler handles authentication-related endpoints like login and register
 type AuthHandler struct {
-	AuthService *service.AuthService
+	AuthService AuthService
 	logger      *logging.Logger
 }
 
 // NewAuthHandler creates a new AuthHandler
-func NewAuthHandler(s *service.AuthService, logger *logging.Logger) *AuthHandler {
+func NewAuthHandler(s AuthService, logger *logging.Logger) *AuthHandler {
 	return &AuthHandler{AuthService: s, logger: logger}
 }
 
