@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/artnikel/taskscheduler/constants"
+	"github.com/artnikel/marketplace/internal/constants"
 )
 
 // Logger holds separate loggers for informational and error messages
