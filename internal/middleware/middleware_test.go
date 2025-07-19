@@ -28,21 +28,37 @@ func TestCORSMiddleware(t *testing.T) {
 
 	handler := CORSMiddleware(nextHandler)
 
-	req := httptest.NewRequest("OPTIONS", "/", http.NoBody)
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	t.Run("OPTIONS request", func(t *testing.T) {
+		nextCalled = false
+		req := httptest.NewRequest("OPTIONS", "/", http.NoBody)
+		req.Header.Set("Origin", "http://example.com")
 
-	resp := w.Result()
-	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
-	assert.False(t, nextCalled)
-	assert.Equal(t, "*", resp.Header.Get("Access-Control-Allow-Origin"))
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
 
-	nextCalled = false
-	req = httptest.NewRequest("GET", "/", http.NoBody)
-	w = httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-	assert.True(t, nextCalled)
-	assert.Equal(t, "*", w.Result().Header.Get("Access-Control-Allow-Origin"))
+		resp := w.Result()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.False(t, nextCalled)
+
+		assert.Equal(t, "http://example.com", resp.Header.Get("Access-Control-Allow-Origin"))
+		assert.Equal(t, "true", resp.Header.Get("Access-Control-Allow-Credentials"))
+	})
+
+	t.Run("GET request", func(t *testing.T) {
+		nextCalled = false
+		req := httptest.NewRequest("GET", "/", http.NoBody)
+		req.Header.Set("Origin", "http://example.org")
+
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		resp := w.Result()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.True(t, nextCalled)
+
+		assert.Equal(t, "http://example.org", resp.Header.Get("Access-Control-Allow-Origin"))
+		assert.Equal(t, "true", resp.Header.Get("Access-Control-Allow-Credentials"))
+	})
 }
 
 func TestLoggingMiddleware(t *testing.T) {

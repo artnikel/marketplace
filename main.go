@@ -26,7 +26,7 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
-		cfg.Database.Connection = dbURL
+		cfg.Database.Connection = dbURL // used for hosting service
 	}
 
 	logger, err := logging.NewLogger(cfg.Logging.Path)
@@ -59,15 +59,17 @@ func main() {
 	r.Use(middleware.CORSMiddleware)
 	r.Use(middleware.LoggingMiddleware)
 
-	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		if _, err := w.Write([]byte(`{"status":"ok"}`)); err != nil {
+			log.Printf("failed to write health response: %v", err)
+		}
 	}).Methods("GET")
 
 	// API routes
 	api := r.PathPrefix("/api").Subrouter()
-	
+
 	// Public routes
 	api.HandleFunc("/auth/register", authH.Register).Methods("POST", "OPTIONS")
 	api.HandleFunc("/auth/login", authH.Login).Methods("POST", "OPTIONS")
@@ -94,7 +96,7 @@ func main() {
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         "0.0.0.0:" + strconv.Itoa(port), 
+		Addr:         "0.0.0.0:" + strconv.Itoa(port),
 		ReadTimeout:  constants.ServerTimeout,
 		WriteTimeout: constants.ServerTimeout,
 	}
