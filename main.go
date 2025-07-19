@@ -26,7 +26,7 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
-		cfg.Database.Connection = dbURL
+		cfg.Database.Connection = dbURL // used for hosting service
 	}
 
 	logger, err := logging.NewLogger(cfg.Logging.Path)
